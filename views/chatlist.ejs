@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>example4</title>
+    <link rel="stylesheet" type="text/css" href="../css/grid.css">
+
+</head>
+<body>
+	<div class="container">
+		<div class="header">HEADER</div>
+		<div class="menu"><%= session.username %></div>
+		<div class="content" style="display:block;">
+            <% chatList.forEach(function(list) { %>
+                <% if(session._id != list._id){ %>
+                    <p><a href="/chatbox/<%= list._id %>"><%= list.username %> </a> </p>
+                <% } %>
+            <% }) %>
+        </div>
+		<div class="footer">FOOTER</div>
+	</div>
+</body>
+</html>
