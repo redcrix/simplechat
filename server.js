@@ -8,6 +8,8 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 const bodyParser = require('body-parser');
 const path = require('path');
+const config = require('./config/config.js');
+require("dotenv").config();
 
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -23,7 +25,7 @@ app.use(passport.session());
 
 
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb+srv://Dastan:8El0NgyfGC00wZhI@cluster0-pub21.mongodb.net/chat?retryWrites=true&w=majority', {
+mongoose.connect(config.url, {
   useNewUrlParser: true
 }).then(() => {
   console.log("Successfully connected to the database");
@@ -36,6 +38,13 @@ mongoose.set('useFindAndModify', false);
   const users = require('./models/user.model');
   const chat = require('./models/chat.model');
 //============================================
+
+// ===========================================
+
+require('./api/router/api.routes')(app, passport);
+
+
+// ===========================================
 
 //=========================================================
 app.get('/', (req, res) => {
@@ -235,6 +244,6 @@ io.on('connection', socket => {
 // =============================================================
 
 
-server.listen(3001, function(){
-  console.log('server is working');
+server.listen(process.env.PORT || config.serverport, function(){
+  console.log('server is working ', config.serverport);
 })
