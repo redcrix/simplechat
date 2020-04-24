@@ -2,11 +2,13 @@ var mongoose = require('mongoose');
 var bcrypt = require('bcrypt-nodejs');
 
 var userSchema = mongoose.Schema({
-    firstname: String,
-    lastname: String,
+    username: String,
+    country: String,
+    profile_pick: String,
     email: String,
-    phone: String,
     password: String,
+    device_token: String,
+    device_os: String
 }, {
     timestamps: true
 });

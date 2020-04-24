@@ -33,7 +33,6 @@ mongoose.connect(config.url, {
   console.log("could not connect to the database. Exiting now...", err);
 })
 mongoose.set('useFindAndModify', false);
-
 //============================================
   const users = require('./models/user.model');
   const chat = require('./models/chat.model');
@@ -228,7 +227,7 @@ io.on('connection', socket => {
     if(user){
       io.to(user.room).emit(
         'message',
-        formatMessage(botName, `${user.username} has left the chat`)
+        formatMessage(user.username, `${user.username} has left the chat`)
       );
 
       // Send users and  room info

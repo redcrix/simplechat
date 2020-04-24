@@ -28,6 +28,7 @@ module.exports = (app, passport) => {
     const apis = require('../controller/controller');
         app.post('/api/login', apis.login);
         app.post('/api/signup', apis.signup);
+        app.post('/api/lat_long', verifyToken, apis.lat_long)
         app.post('/api/chat_box', verifyToken, apis.findOrCreate);
         app.get('/api/chat_list', verifyToken, apis.getOldChatList);
     }

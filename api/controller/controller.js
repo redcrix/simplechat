@@ -2,48 +2,66 @@ const user = require('../../models/user.model');
 const common = require('../../config/functions');
 const jwt = require('jsonwebtoken');
 const chat = require('../../models/chat.model');
+const pin = require('../../models/map_lat_long.model');
 
 exports.signup = function(req, res){
     console.log(req.body);
-    if(req.body.phone && req.body.email && req.body.lastname && req.body.firstname && req.body.password){
+    if(req.body.email && req.body.username && req.body.password && req.body.profile_pick && req.body.device_token && req.body.device_os){
         var newuser = new user();
-            newuser.firstname = req.body.firstname;
-            newuser.lastname = req.body.lastname;
-            newuser.phone = req.body.phone;
-            newuser.email = req.body.email;
+            newuser.username = req.body.username;
             newuser.password = newuser.generateHash(req.body.password);
-
-        user.findOne({"email": req.body.email}, function(err, found){
-            if(err){
-                return res.json({
-                    message: "please try again later",
-                    error: err
-                });
-            } else if(found){
-                return res.json({
-                    message: "email is already registered",
-                });
-            } else {
-                newuser.save(function(err){
-                    if(err){
+            newuser.email = req.body.email;
+            newuser.country = req.body.country;
+            newuser.profile_pick = req.body.profile_pick;
+            newuser.device_token = req.body.device_token;
+            newuser.device_os = req.body.device_os;
+            common.findExistingUser(req.body.username, req.body.email, (err, result, type) => {
+                if(err){
+                    return res.json({
+                        success: 0,
+                        message: err,
+                        data: ''
+                    });
+                } else if(result){
+                    if(type == "email"){
                         return res.json({
-                            message: "please try again later",
-                            error: err
+                            success: 0,
+                            message: "email  is already registered",
+                            data: ''
                         });
                     } else {
                         return res.json({
-                            message: "user account is created",
-                            user: newuser
+                            success: 0,
+                            message: "username is already registered",
+                            data: ''
                         });
                     }
-                });
-            }
-        });
-
+                } else if(!result && type == "notfound"){
+                    newuser.save(function(err){
+                        if(err){
+                            return res.json({
+                                success: 0,
+                                message: err,
+                                data: ''
+                            });
+                        } else {
+                            var token = common.generateAccessToken(newuser.toJSON());
+                            return res.json({
+                                success: 1,
+                                message: "user account is created",
+                                profile_pick: newuser.profile_pick,
+                                user: newuser.username,
+                                user_token: token
+                            });
+                        }
+                    });
+                }
+            })
     } else {
         return res.json({
-            code: 200,
-            message: "firstname, lastname, email, phone, password these fields are required"
+            success: 0,
+            message: "All fields are required",
+            data: ''
         });
     }
 
@@ -52,77 +70,117 @@ exports.signup = function(req, res){
 
 exports.login = function(req, res){
     console.log(req.body);
-    if(req.body.email && req.body.password){
-        user.findOne({'email': req.body.email}, function(err, found){
+    if(req.body.username && req.body.password && req.body.device_token && req.body.device_os){
+        user.findOne({'username': req.body.username}, function(err, found){
             if (err){
                 return res.json({
-                    error: "Something went wrong please try again later"
+                    success: 0,
+                    message: err,
+                    data: ''
                 });
             }
 
             if (!found) {
                 return res.json({
-                    message: "User not found"
+                    success: 0,
+                    message: "User not found",
+                    data: ''
                 });
             }
 
             if (found.validPassword(req.body.password)){
                 console.log(process.env.ACCESS_TOKEN_SECRET)
                 var token = common.generateAccessToken(found.toJSON());
-                var refreshToken = jwt.sign(found.toJSON(), process.env.REFRESH_TOKEN_SECRET);
-                console.log('============================');
+                user.findByIdAndUpdate(found._id, {device_token: req.body.device_token, device_os: req.body.device_os}, {new: true});
                 return res.json({
+                    success: 1,
                     message: "LoggedIn",
-                    user: found,
-                    token: token,
+                    profile_pick: found.profile_pick,
+                    user: found.username,
+                    user_token: token,
                 });
             } else {
                 return res.json({
-                    message: 'Email Or Password Does Not Match.'
+                    success: 0,
+                    message: 'username Or Password Does Not Match.',
+                    data: ''
                 });
             }
         });
     } else {
         return res.json({
-            message: "email and password is required for login",
+            success: 0,
+            message: "all field required for login",
+            data: ''
         });
     }
 }
 
+// ==================== map integration apis ========================
+
+exports.lat_long = function(req, res){
+    exports.findOrCreate = function(req, res){
+        jwt.verify(req.token, process.env.ACCESS_TOKEN_SECRET, (err, found) =>{
+            if(err){
+                return res.json({
+                    success: 0,
+                    message: err,
+                    data: ''
+                });
+            } else {
+                if(req.body.current_lat && req.body.current_long && req.body.pin_icon_type){
+                    return res.json({
+                        success: 0,
+                        message: "Under Construction",
+                        data: ''
+                    });
+                } else {
+                    return res.json({
+                        success: 0,
+                        message: "All fields are required",
+                        data: ''
+                    });
+                }
+            }
+        });
+    }
+}
+
+// ==================================================================
 
 // ============ create chat room  and show chat history =============
-
-
 
 
 exports.findOrCreate = function(req, res){
     jwt.verify(req.token, process.env.ACCESS_TOKEN_SECRET, (err, found) =>{
         if(err){
             return res.json({
-                error: err
+                success: 0,
+                message: err,
+                data: ''
             });
         } else {
             if(found._id && req.body.usertwo_id) {
                 common.chatData(found._id, req.body.usertwo_id, (err, result)=>{
                     if(err){
                         return res.json({
-                            code:201,
-                            success: false,
-                            message: err
+                            success: 0,
+                            message: err,
+                            data: ''
                         });
                     } else {
                         return res.json({
-                            code:200,
-                            success: true,
-                            message: result
+                            success: 1,
+                            message: "chat",
+                            data: result
                         });
                     }
                 })
             } else {
                 return res.json({
-                    code:201,
-                    success: false,
-                    message: "input filled empty"
+                    success: 1,
+                    message: "input filled empty",
+                    data: ''
                 });
             }
         }
@@ -134,7 +192,9 @@ exports.getOldChatList = function(req, res){
     jwt.verify(req.token, process.env.ACCESS_TOKEN_SECRET, (err, found) =>{
         if(err){
             return res.json({
-                error: err
+                success: 0,
+                message: err,
+                data: ''
             });
         } else if(found) {
             chat.find({$or: [{userOne: found._id},{ userTwo: found._id}]}, 'userOne userTwo')
@@ -142,22 +202,21 @@ exports.getOldChatList = function(req, res){
             .exec(function(err, chatId){
                 if(err){
                     return res.json({
-                            message:err,
-                            code:201,
-                            success: false,
-                        });
+                        success: 0,
+                        message: err,
+                        data: ''
+                    });
                 } else if(chatId){
                     return res.json({
+                        success: 1,
                         message:"chat list",
-                        code:201,
-                        success: true,
-                        chat_list: chatId,
+                        data: chatId,
                     });
                 } else {
                     return res.json({
+                        success: 0,
                         message:"chat list empty",
-                        code:201,
-                        success: false,
+                        data: ''
                     });
                 }
             });
